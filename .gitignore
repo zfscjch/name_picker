@@ -1,0 +1,16 @@
+client/dismiss_config.json
+client/name_picker_data.json
+client/pet_reminders.json
+client/pet_walk.json
+client/plugins/*
+light/
+utils/
+pics/
+client/tree.txt
+client/build/
+client/dist/
+client/name_picker.spec
+client/name_picker/__pycache__/
+_outdated
+client/pet_walk.webp
+server/

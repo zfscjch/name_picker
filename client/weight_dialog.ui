@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WeightDialog</class>
+ <widget class="QDialog" name="WeightDialog">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>680</width><height>760</height></rect>
+  </property>
+  <property name="windowTitle"><string>后台管理 — 权重设置</string></property>
+  <layout class="QVBoxLayout" name="weightLayout" stretch="0,0,1,0">
+   <item>
+    <widget class="QLabel" name="tipLabel">
+     <property name="text">
+      <string>权重越大越容易被抽中；填 0 表示该人不会被抽中。&#10;单人替换：双击表格中“权重”单元格直接修改；&#10;批量替换：选择范围后输入新值，点击“批量替换”。</string>
+     </property>
+     <property name="wordWrap"><bool>true</bool></property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="batchBox">
+     <property name="title"><string>批量替换</string></property>
+     <layout class="QVBoxLayout" name="batchLayout">
+      <item>
+       <layout class="QHBoxLayout" name="rangeRow" stretch="0,1">
+        <item><widget class="QLabel" name="rangeLabel"><property name="text"><string>替换范围:</string></property></widget></item>
+        <item><widget class="QComboBox" name="range_combo"/></item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QWidget" name="group_row" native="true">
+        <property name="visible"><bool>false</bool></property>
+        <layout class="QHBoxLayout" name="groupRowLayout" stretch="0,1">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item><widget class="QLabel" name="batchGroupLabel"><property name="text"><string>选择分组:</string></property></widget></item>
+         <item><widget class="QComboBox" name="batch_group"/></item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="valueRow" stretch="0,0,0,1">
+        <item><widget class="QLabel" name="batchValueLabel"><property name="text"><string>新权重值:</string></property></widget></item>
+        <item>
+         <widget class="QLineEdit" name="batch_value">
+          <property name="minimumSize"><size><width>90</width><height>0</height></size></property>
+          <property name="maximumSize"><size><width>90</width><height>16777215</height></size></property>
+          <property name="text"><string>1</string></property>
+         </widget>
+        </item>
+        <item><widget class="QPushButton" name="apply_btn"><property name="text"><string>批量替换</string></property></widget></item>
+        <item>
+        <spacer name="valueSpacer">
+         <property name="orientation"><enum>Qt::Horizontal</enum></property>
+         <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+        </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="tableBox">
+     <property name="title"><string>权重表格（双击“权重”列可单人替换）</string></property>
+     <layout class="QVBoxLayout" name="tableLayout" stretch="1,0">
+      <item>
+       <widget class="QTableWidget" name="table">
+        <column><property name="text"><string>姓名</string></property></column>
+        <column><property name="text"><string>分组</string></property></column>
+        <column><property name="text"><string>权重</string></property></column>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="quickRow" stretch="0,0,1">
+        <item><widget class="QPushButton" name="reset_all_btn"><property name="text"><string>全部重置为 1</string></property></widget></item>
+        <item><widget class="QPushButton" name="reset_sel_btn"><property name="text"><string>选中行重置为 1</string></property></widget></item>
+        <item>
+        <spacer name="quickSpacer">
+         <property name="orientation"><enum>Qt::Horizontal</enum></property>
+         <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+        </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons"><set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set></property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+</ui>

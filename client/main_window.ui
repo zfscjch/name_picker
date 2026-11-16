@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>NamePickerMainWindow</class>
+ <widget class="QMainWindow" name="NamePickerMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>380</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>随机点名器</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="mainLayout" stretch="0,0,0,1,0">
+    <property name="spacing">
+     <number>6</number>
+    </property>
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+    <item>
+     <widget class="QLabel" name="titleLabel">
+      <property name="styleSheet">
+       <string notr="true">font-size: 28px; font-weight: bold; font-family: &quot;微软雅黑&quot;; </string>
+      </property>
+      <property name="text">
+       <string>随机抽取</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="setBox">
+      <property name="styleSheet">
+       <string notr="true">QGroupBox { font-size: 16px; margin-top: 6px; } QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 4px; font-size: 18px; font-weight: bold; } QComboBox, QSpinBox { font-size: 16px; padding: 4px; }</string>
+      </property>
+      <property name="title">
+       <string>抽取设置</string>
+      </property>
+      <layout class="QVBoxLayout" name="setLayout">
+       <property name="spacing">
+        <number>8</number>
+       </property>
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="topMargin">
+        <number>18</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="modeRow" stretch="0,1,0,0">
+         <item>
+          <widget class="QLabel" name="modeLabel">
+           <property name="styleSheet">
+            <string notr="true">font-size: 18px;</string>
+           </property>
+           <property name="text">
+            <string>模式:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="mode_combo">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>35</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="countLabel">
+           <property name="styleSheet">
+            <string notr="true">font-size: 18px;</string>
+           </property>
+           <property name="text">
+            <string>人数:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="count_spin">
+           <property name="minimumSize">
+            <size>
+             <width>70</width>
+             <height>35</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>70</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>9999</number>
+           </property>
+           <property name="value">
+            <number>1</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QWidget" name="single_row" native="true">
+         <property name="visible">
+          <bool>false</bool>
+         </property>
+         <layout class="QHBoxLayout" name="singleRowLayout" stretch="0,1">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="singleLabel">
+            <property name="styleSheet">
+             <string notr="true">font-size: 18px;</string>
+            </property>
+            <property name="text">
+             <string>分组:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="single_combo">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>35</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="multi_widget" native="true">
+         <property name="visible">
+          <bool>false</bool>
+         </property>
+         <layout class="QVBoxLayout" name="multiLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QListWidget" name="multi_list">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>80</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font-size: 16px;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="draw_btn">
+      <property name="styleSheet">
+       <string notr="true">font-size: 32px; padding: 8px; font-weight: bold;</string>
+      </property>
+      <property name="text">
+       <string>开始抽取</string>
+      </property>
+      <property name="default">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QTextEdit" name="display">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>60</height>
+       </size>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">font-size: 48px; font-weight: bold; color: #1a73e8; background-color: #f8f9fa; border: 1px solid #ccc; border-radius: 5px;</string>
+      </property>
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="bottom" stretch="0,1,0">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="clear_result_btn">
+        <property name="styleSheet">
+         <string notr="true">padding: 4px 8px; font-size: 18px;</string>
+        </property>
+        <property name="text">
+         <string>清空结果</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="status_label">
+        <property name="styleSheet">
+         <string notr="true">color: #666; font-size: 14px;</string>
+        </property>
+        <property name="text">
+         <string>尚未导入名单</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="admin_btn">
+        <property name="styleSheet">
+         <string notr="true">padding: 4px 8px; font-size: 18px;</string>
+        </property>
+        <property name="text">
+         <string>名单管理</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+    <widget class="QMenuBar" name="menubar">
+      <property name="geometry">
+        <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>600</width>
+        <height>22</height>
+        </rect>
+      </property>
+      <widget class="QMenu" name="menuSettings">
+        <property name="title">
+        <string>设置(&amp;S)</string>
+        </property>
+        <addaction name="actionDismissSettings"/>
+      </widget>
+      <widget class="QMenu" name="menuHelp">
+        <property name="title">
+        <string>帮助(&amp;H)</string>
+        </property>
+        <addaction name="actionAbout"/>
+      </widget>
+      <addaction name="menuSettings"/>
+      <addaction name="menuHelp"/>
+      </widget>
+      <action name="actionDismissSettings">
+      <property name="text">
+        <string>防拖堂设置…</string>
+      </property>
+      </action>
+      <action name="actionAbout">
+      <property name="text">
+        <string>版本信息…</string>
+      </property>
+      </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

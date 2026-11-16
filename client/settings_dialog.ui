@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SettingsDialog</class>
+ <widget class="QDialog" name="SettingsDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>560</width>
+    <height>560</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>560</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>设置 - 防拖堂</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0" colspan="2">
+      <widget class="QCheckBox" name="enable_cb">
+       <property name="text">
+        <string>开启防拖堂功能</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0" colspan="2">
+      <widget class="QGroupBox" name="group_a_box">
+       <property name="title">
+        <string>周一 / 周三 / 周五 / 周六</string>
+       </property>
+       <layout class="QVBoxLayout" name="group_a_layout">
+        <item>
+         <widget class="QPlainTextEdit" name="group_a_edit">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>140</height>
+           </size>
+          </property>
+          <property name="placeholderText">
+           <string>每行一个时间，例如：
+08:40
+09:30</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="2" column="0" colspan="2">
+      <widget class="QGroupBox" name="group_b_box">
+       <property name="title">
+        <string>周二 / 周四</string>
+       </property>
+       <layout class="QVBoxLayout" name="group_b_layout">
+        <item>
+         <widget class="QPlainTextEdit" name="group_b_edit">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>140</height>
+           </size>
+          </property>
+          <property name="placeholderText">
+           <string>每行一个时间，例如：
+08:40
+09:30</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="proc_label">
+       <property name="text">
+        <string>检测/结束的进程：</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="proc_edit">
+       <property name="placeholderText">
+        <string>wpp.exe, POWERPNT.EXE</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="hint">
+     <property name="text">
+      <string>每组每行一个下课时间（24 小时制 HH:MM）。
+程序只会按“今天星期几”匹配对应分组的课间；周日不归入任何分组，不会触发。
+到达下课时间后，若下方任意进程仍在运行，将弹出全屏“保持安静”页面；
+关闭该页面后会强制结束这些进程。</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: #666;</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Ok|QDialogButtonBox::Cancel</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
