@@ -11,6 +11,6 @@ client/build/
 client/dist/
 client/name_picker.spec
 client/name_picker/__pycache__/
-_outdated
+_outdated/
 client/pet_walk.webp
 server/

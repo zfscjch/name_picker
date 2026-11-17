@@ -17,6 +17,7 @@ from PyQt5.QtCore import QObject, QTimer, Qt
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QShortcut
 
+from .hotkey import HotkeyListener, DEFAULT_HOTKEY
 from .config import ui_path
 
 DISMISS_CONFIG_PATH = ui_path("dismiss_config.json")
@@ -46,6 +47,7 @@ DEFAULT_DISMISS_CONFIG = {
     "presentation_processes": list(DEFAULT_PRESENTATION_PROCESSES),
     "silence_title": "保持安静",
     "silence_hint": "上课已结束，请保持安静\n按 Esc 或 Ctrl+W 关闭本窗口",
+    "hotkey": DEFAULT_HOTKEY,        # 新增
 }
 
 STARTUP_GRACE_SECONDS = 300
@@ -93,6 +95,7 @@ def load_dismiss_config() -> dict:
         "presentation_processes": list(DEFAULT_PRESENTATION_PROCESSES),
         "silence_title": DEFAULT_DISMISS_CONFIG["silence_title"],
         "silence_hint": DEFAULT_DISMISS_CONFIG["silence_hint"],
+        "hotkey": DEFAULT_HOTKEY,
     }
     if not os.path.exists(DISMISS_CONFIG_PATH):
         return cfg
@@ -101,6 +104,11 @@ def load_dismiss_config() -> dict:
             data = json.load(f)
     except Exception:
         return cfg
+
+    if "hotkey" in data:
+        hk = str(data.get("hotkey", "")).strip()
+        if hk:
+            cfg["hotkey"] = hk
 
     # ---- 下课时间：新格式 dict ----
     raw_times = data.get("dismiss_times")
@@ -335,6 +343,7 @@ class DismissGuard(QObject):
         self._timer = QTimer(self)
         self._timer.setInterval(self._interval_ms())
         self._timer.timeout.connect(self._tick)
+        self._hotkey_listener = None
 
     # ---------- 配置 ----------
     def _interval_ms(self) -> int:
@@ -371,14 +380,17 @@ class DismissGuard(QObject):
         self._timer.setInterval(self._interval_ms())
         self._init_handled_on_start()
         self._timer.start()
+        self._start_hotkey_listener()
 
     def stop(self):
         self._timer.stop()
+        self._stop_hotkey_listener()
 
     def reload_config(self):
         self.cfg = load_dismiss_config()
         self._timer.setInterval(self._interval_ms())
         self._init_handled_on_start()
+        self._start_hotkey_listener()      # 快捷键可能被改，重启监听
 
     def close_silence_window(self):
         if self._silence_window is not None:
@@ -387,6 +399,45 @@ class DismissGuard(QObject):
             except Exception:
                 pass
             self._silence_window = None
+
+    # ---------- 全局快捷键 ----------
+    def _hotkey_string(self) -> str:
+        cfg = self.cfg or {}
+        hk = cfg.get("hotkey")
+        if isinstance(hk, str) and hk.strip():
+            return hk.strip()
+        return DEFAULT_HOTKEY
+
+    def _start_hotkey_listener(self):
+        """(重新)启动全局快捷键监听。"""
+        self._stop_hotkey_listener()
+        listener = HotkeyListener(self._hotkey_string(), parent=self)
+        listener.triggered.connect(self._on_hotkey_triggered)
+        listener.error_occurred.connect(
+            lambda msg: print(f"[防拖堂] 全局快捷键监听失败：{msg}")
+        )
+        listener.start()
+        self._hotkey_listener = listener
+
+    def _stop_hotkey_listener(self):
+        if self._hotkey_listener is not None:
+            try:
+                self._hotkey_listener.stop()
+            except Exception:
+                pass
+            self._hotkey_listener = None
+
+    def _on_hotkey_triggered(self):
+        """主线程槽函数：快捷键触发时弹出保持安静窗口。
+
+        行为约定（与自动触发保持一致）：
+          - 不受 cfg["enabled"] 影响（用户显式按键就是要弹）；
+          - 若已有窗口，_show_silence() 会自动 raise，不会重复创建；
+          - 关闭窗口后仍会按配置结束演示进程（与自动触发一致）。
+        如不希望关闭后结束演示进程，可把下面这行改为 self._pending_processes = []
+        """
+        self._pending_processes = self._presentation_processes()
+        self._show_silence()
 
     # ---------- 内部 ----------
     def _init_handled_on_start(self):
