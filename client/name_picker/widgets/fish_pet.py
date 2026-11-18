@@ -3,11 +3,13 @@
 import os
 import math
 import json
+import base64
 import datetime
+import xml.etree.ElementTree as ET
 from datetime import datetime as dt  # 用于 dt.now()
 
-from PyQt5.QtCore import Qt, QTimer, QPoint
-from PyQt5.QtGui import QPainter, QPixmap, QTransform
+from PyQt5.QtCore import Qt, QTimer, QPoint, QRect, QElapsedTimer
+from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QMenu, QAction, QMessageBox, QApplication,
 )
@@ -18,6 +20,78 @@ from ..config import (
 from ..autostart import set_autostart, is_autostart_enabled
 from .speech_bubble import SpeechBubble
 from .pet_result import PetResultDialog
+
+# 行走动画的兜底节奏（pet_walk.svg 缺失时使用，与旧版 3×50ms 一帧一致）
+WALK_FRAME_MS = 150
+WALK_BOB_PX = 4.0
+WALK_BOB_COUNT = 2.0
+
+_SVG_NS = "http://www.w3.org/2000/svg"
+_XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
+
+
+def load_walk_animation():
+    """读取 pet_walk.svg 的行走序列图与节奏；失败时退回 pet_walk_*.png。
+
+    返回 dict：
+      strip:      QPixmap | None  横向序列图（SVG 内嵌，60fps 已烘焙补间）
+      frames:     list[QPixmap]   序列图缺失时的单帧列表（PNG 回退）
+      count:      int             序列帧数
+      frame_size: (w, h)          单帧尺寸
+      frame_ms:   float           每帧毫秒
+      bob_px / bob_count: float   步态起伏参数
+    """
+    svg_path = ui_path("pet_walk.svg")
+
+    if os.path.exists(svg_path):
+        try:
+            root = ET.parse(svg_path).getroot()
+            for node in root.iter(f"{{{_SVG_NS}}}image"):
+                href = node.get(_XLINK_HREF) or node.get("href") or ""
+                head, _, payload = href.partition(",")
+                if not head.startswith("data:image/png;base64") or not payload:
+                    continue
+                strip = QPixmap()
+                if not strip.loadFromData(base64.b64decode(payload), "PNG"):
+                    continue
+
+                count = int(float(root.get("data-frames", 1)))
+                frame_w = int(float(root.get("data-frame-width", 0))) or (
+                    strip.width() // max(1, count)
+                )
+                frame_h = int(float(root.get("data-frame-height", 0))) or strip.height()
+                if count <= 0 or frame_w <= 0 or frame_h <= 0:
+                    continue
+                if strip.width() < count * frame_w or strip.height() < frame_h:
+                    continue
+
+                return {
+                    "strip": strip,
+                    "frames": [],
+                    "count": count,
+                    "frame_size": (frame_w, frame_h),
+                    "frame_ms": max(5.0, float(root.get("data-frame-ms", 1000.0 / 60))),
+                    "bob_px": max(0.0, float(root.get("data-bob-px", WALK_BOB_PX))),
+                    "bob_count": max(0.0, float(root.get("data-bob-count", WALK_BOB_COUNT))),
+                }
+        except Exception:
+            pass
+
+    frames = []
+    for i in range(1, 9):
+        path = ui_path(f"pet_walk_{i}.png")
+        if os.path.exists(path):
+            frames.append(QPixmap(path))
+
+    return {
+        "strip": None,
+        "frames": frames,
+        "count": len(frames),
+        "frame_size": (frames[0].width(), frames[0].height()) if frames else (0, 0),
+        "frame_ms": float(WALK_FRAME_MS),
+        "bob_px": WALK_BOB_PX,
+        "bob_count": WALK_BOB_COUNT,
+    }
 
 
 class FishPet(QWidget):
@@ -37,17 +111,21 @@ class FishPet(QWidget):
         # 1. 默认静止图片
         self.pixmap = QPixmap(ui_path("pet.png"))
 
-        # 2. 8 帧行走图片
-        self.walk_pixmaps = []
-        for i in range(1, 9):
-            path = ui_path(f"pet_walk_{i}.png")
-            if os.path.exists(path):
-                self.walk_pixmaps.append(QPixmap(path))
-            else:
-                self.walk_pixmaps.append(self.pixmap)
+        # 2. 行走动画：优先读 pet_walk.svg（60fps 序列图 + 节奏），失败退回 8 张 PNG
+        walk = load_walk_animation()
+        self._walk_strip = walk["strip"]
+        self._walk_frames = walk["frames"]
+        self._walk_frame_count = walk["count"]
+        self._walk_frame_size = walk["frame_size"]
+        self._walk_frame_ms = float(walk["frame_ms"])
+        self._bob_px = float(walk["bob_px"])
+        self._bob_count = float(walk["bob_count"])
 
-        self._walk_frame_index = 0
-        self._walk_frame_tick = 0
+        # 连续相位（单位：帧），配合 60fps 定时器平滑推进
+        self._walk_frame_pos = 0.0
+        self._walk_x = float(self.x())
+        self._walk_last_ms = 0
+        self._walk_clock = QElapsedTimer()
 
         self._interaction_enabled = True
         self._dragging = False
@@ -66,7 +144,8 @@ class FishPet(QWidget):
         self._anim.start()
 
         self._walk_timer = QTimer(self)
-        self._walk_timer.setInterval(50)
+        self._walk_timer.setTimerType(Qt.PreciseTimer)
+        self._walk_timer.setInterval(16)  # ≈60fps，帧间补间才顺
         self._walk_timer.timeout.connect(self._on_walk_tick)
 
         self._schedule_timer = QTimer(self)
@@ -126,37 +205,51 @@ class FishPet(QWidget):
 
     def _start_walking(self):
         self._is_walking = True
-        self._walk_frame_index = 0
-        self._walk_frame_tick = 0
+        self._walk_frame_pos = 0.0
+        self._walk_x = float(self.x())
+        self._walk_clock.start()
+        self._walk_last_ms = 0
         self._walk_timer.start()
+        self.update()
 
     def _stop_walking(self):
         self._is_walking = False
         self._walk_timer.stop()
-        self._walk_frame_index = 0
+        self._walk_frame_pos = 0.0
         self.update()
 
     def _on_walk_tick(self):
+        now = self._walk_clock.elapsed()
+        dt = now - self._walk_last_ms
+        self._walk_last_ms = now
         if self._dragging:
+            # 拖拽时同步起点，松手后从当前位置继续走
+            self._walk_x = float(self.x())
             return
 
-        self._walk_frame_tick += 1
-        if self._walk_frame_tick >= 3:
-            self._walk_frame_tick = 0
-            self._walk_frame_index = (self._walk_frame_index + 1) % 8
-            self.update()
+        # 用真实时间推进，定时器抖动不会让脚步忽快忽慢
+        dt = max(0.0, min(float(dt), 100.0))
+        total_frames = self._walk_frame_count
+        if total_frames and self._walk_frame_ms > 0:
+            self._walk_frame_pos = (
+                self._walk_frame_pos + dt / self._walk_frame_ms
+            ) % total_frames
 
         screen = QApplication.primaryScreen().availableGeometry()
-        current_x = self.x()
+        # walk_speed 语义沿用旧版：每 50ms 移动的像素
+        self._walk_x += self._walk_speed * self._walk_direction * dt / 50.0
 
-        if self._walk_direction < 0 and current_x <= screen.left():
+        if self._walk_direction < 0 and self._walk_x <= screen.left():
             self._walk_direction = 1
-        elif self._walk_direction > 0 and current_x + self.width() >= screen.right():
+        elif self._walk_direction > 0 and self._walk_x + self.width() >= screen.right():
             self._walk_direction = -1
 
-        new_x = current_x + (self._walk_speed * self._walk_direction)
-        new_x = max(screen.left(), min(new_x, screen.right() - self.width()))
-        self.move(new_x, self.y())
+        self._walk_x = max(
+            float(screen.left()),
+            min(self._walk_x, float(screen.right() - self.width())),
+        )
+        self.move(int(round(self._walk_x)), self.y())
+        self.update()
     # --------------------------------
 
     @staticmethod
@@ -190,33 +283,70 @@ class FishPet(QWidget):
             self._phase -= math.pi * 2
         self.update()
 
+    def _walk_bob(self):
+        """按步态相位做上下起伏：每轮循环两次，左右脚各一次。"""
+        if self._bob_px <= 0 or self._walk_frame_count <= 0:
+            return 0
+        phase = (self._walk_frame_pos % self._walk_frame_count) / self._walk_frame_count
+        wave = 0.5 - 0.5 * math.cos(2.0 * math.pi * self._bob_count * phase)
+        return int(round(-self._bob_px * wave))
+
+    def _walk_target_rect(self, offset):
+        """按 KeepAspectRatio 把单帧铺到窗口里，居中并叠加起伏。"""
+        frame_w, frame_h = self._walk_frame_size
+        if frame_w <= 0 or frame_h <= 0:
+            return QRect(0, 0, 0, 0)
+        scale = min(self.width() / frame_w, self.height() / frame_h)
+        width = max(1, int(round(frame_w * scale)))
+        height = max(1, int(round(frame_h * scale)))
+        return QRect(
+            (self.width() - width) // 2,
+            (self.height() - height) // 2 + offset,
+            width,
+            height,
+        )
+
+    def _paint_walking(self, painter):
+        count = self._walk_frame_count
+        if count <= 0:
+            return
+        index = int(self._walk_frame_pos) % count
+        target = self._walk_target_rect(self._walk_bob())
+
+        painter.save()
+        if self._walk_direction > 0:  # 向右走时水平镜像
+            painter.translate(self.width(), 0)
+            painter.scale(-1, 1)
+
+        if self._walk_strip is not None and not self._walk_strip.isNull():
+            frame_w, frame_h = self._walk_frame_size
+            source = QRect(index * frame_w, 0, frame_w, frame_h)
+            painter.drawPixmap(target, self._walk_strip, source)
+        elif self._walk_frames:
+            pixmap = self._walk_frames[index % len(self._walk_frames)]
+            if not pixmap.isNull():
+                painter.drawPixmap(target, pixmap, pixmap.rect())
+        painter.restore()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
 
-        offset_scale = 8 if self._is_walking else 4
-        offset = int(math.sin(self._phase) * offset_scale)
-
-        current_pixmap = self.pixmap
-        if self._is_walking and self.walk_pixmaps:
-            current_pixmap = self.walk_pixmaps[self._walk_frame_index]
-
-        if not current_pixmap.isNull():
-            if self._walk_direction > 0 and self._is_walking:
-                scaled_pixmap = current_pixmap.scaled(
-                    self.width(), self.height(),
-                    Qt.KeepAspectRatio, Qt.SmoothTransformation,
-                ).transformed(QTransform().scale(-1, 1))
-            else:
-                scaled_pixmap = current_pixmap.scaled(
+        if self._is_walking and self._walk_frame_count:
+            self._paint_walking(painter)
+        else:
+            offset = int(math.sin(self._phase) * 4)
+            if not self.pixmap.isNull():
+                scaled_pixmap = self.pixmap.scaled(
                     self.width(), self.height(),
                     Qt.KeepAspectRatio, Qt.SmoothTransformation,
                 )
-            x = (self.width() - scaled_pixmap.width()) // 2
-            y = (self.height() - scaled_pixmap.height()) // 2 + offset
-            painter.drawPixmap(x, y, scaled_pixmap)
-        else:
-            painter.drawText(self.rect(), Qt.AlignCenter, "图片缺失")
+                x = (self.width() - scaled_pixmap.width()) // 2
+                y = (self.height() - scaled_pixmap.height()) // 2 + offset
+                painter.drawPixmap(x, y, scaled_pixmap)
+            else:
+                painter.drawText(self.rect(), Qt.AlignCenter, "图片缺失")
 
         painter.end()
 
