@@ -9,7 +9,7 @@ Name Picker 是一款用 Python 编写的轻量级桌面工具，专为课堂互
 ## ✨ 功能特性
 
 - **随机点名** — 一键从名单中随机抽取，公平公正。
-- **宠物动画** — 内置多帧宠物行走动画（`pet_walk_*.png`），为点名过程增添趣味。
+- **宠物动画** — 8 帧宠物行走动画（`pet_walk_*.png`），合成为带 60fps 交叉补间的 `pet_walk.svg`，走动更连贯。
 - **插件系统** — 通过 `plugins.py` 支持功能扩展，可根据需要灵活定制。
 - **图形化设置** — 提供直观的设置对话框（`settings_dialog.py`），方便管理名单和偏好。
 - **开机自启** — 支持配置开机自动运行（`autostart.py`），随开随用。
@@ -23,7 +23,7 @@ Name Picker 是一款用 Python 编写的轻量级桌面工具，专为课堂互
 |------|------|
 | 语言 | Python 3 |
 | GUI 框架 | PyQt5（基于 `.ui` 文件构建界面） |
-| 动画资源 | PNG 序列帧（`pet_walk_1.png` ~ `pet_walk_6.png`） |
+| 动画资源 | PNG 序列帧 + SVG 动画（`pet_walk.svg`，60fps 交叉补间） |
 | 插件机制 | 自定义 `plugins.py` 模块 |
 
 ---
@@ -73,7 +73,10 @@ name_picker/
 │   ├── main_window.ui           # Qt Designer 界面文件（主窗口）
 │   ├── name_picker.py           # 客户端启动脚本
 │   ├── pet.png                  # 宠物静态图
-│   └── pet_walk_*.png           # 宠物行走动画帧
+│   ├── pet_walk_*.png           # 宠物行走动画帧（8 帧原画，兜底用）
+│   └── pet_walk.svg             # 60fps 行走动画（utils/build_pet_walk_svg.py 生成）
+├── utils/
+│   └── build_pet_walk_svg.py    # 把 8 帧原画合成为 pet_walk.svg
 ├── .gitignore
 └── LICENSE
 ```
