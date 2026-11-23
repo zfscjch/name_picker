@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 
 from .config import (
     DEFAULT_GROUP, DEFAULT_WEIGHT, CURRENT_VERSION, BASE_DIR, ui_path,
+    ensure_default_configs,
 )
 from .utils import weighted_sample
 from .plugins import PluginManager
@@ -29,6 +30,9 @@ class NamePickerUI(QMainWindow, MainUIForm):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        # 首次运行没有配置文件时，自动生成默认的 pet_config.json / dismiss_config.json
+        ensure_default_configs()
 
         # .ui 中显示区的完整样式（边框、圆角、滚动条等）；动画时只替换字号
         self._display_base_qss = self.display.styleSheet()

@@ -31,12 +31,29 @@ def ui_path(filename: str) -> str:
 
 
 CONFIG = {
-    "version": "1.1.7",
+    "version": "1.1.8",
     "update_api_url": "https://www.cjchcoderchat.site:8080/api/update" if not os.path.exists(os.path.join(BASE_DIR, "plugins", "schedule_booster.py")) \
         else "https://www.cjchcoderchat.site:8080/api/update?pre-release=1",
 }
 CURRENT_VERSION = CONFIG["version"]
 UPDATE_API_URL = CONFIG["update_api_url"]
+
+
+def ensure_default_configs() -> None:
+    """首次运行且没有配置文件时，自动生成默认的 pet_config.json / dismiss_config.json。
+
+    生成失败（例如目录只读）不影响程序启动：各模块读取时都会退回内置默认值。
+    """
+    try:
+        from .pet_config import ensure_pet_config
+        ensure_pet_config()
+    except Exception:
+        pass
+    try:
+        from .dismiss import ensure_dismiss_config
+        ensure_dismiss_config()
+    except Exception:
+        pass
 
 
 def get_entry_script() -> str:

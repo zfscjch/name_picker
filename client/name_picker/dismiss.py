@@ -87,8 +87,9 @@ def _deep_copy_groups(groups: dict) -> dict:
 
 
 # ---------- 配置读写 ----------
-def load_dismiss_config() -> dict:
-    cfg = {
+def default_dismiss_config() -> dict:
+    """返回一份全新的默认防拖堂配置。"""
+    return {
         "enabled": DEFAULT_DISMISS_CONFIG["enabled"],
         "dismiss_times": _deep_copy_groups(DEFAULT_DISMISS_GROUPS),
         "check_interval_seconds": DEFAULT_DISMISS_CONFIG["check_interval_seconds"],
@@ -97,7 +98,13 @@ def load_dismiss_config() -> dict:
         "silence_hint": DEFAULT_DISMISS_CONFIG["silence_hint"],
         "hotkey": DEFAULT_HOTKEY,
     }
+
+
+def load_dismiss_config() -> dict:
+    cfg = default_dismiss_config()
     if not os.path.exists(DISMISS_CONFIG_PATH):
+        # 首次运行没有配置文件：自动写一份默认配置
+        ensure_dismiss_config()
         return cfg
     try:
         with open(DISMISS_CONFIG_PATH, encoding="utf-8") as f:
@@ -189,6 +196,13 @@ def save_dismiss_config(cfg: dict) -> bool:
         return True
     except Exception:
         return False
+
+
+def ensure_dismiss_config() -> bool:
+    """确保 dismiss_config.json 存在；缺失时自动写入默认配置。"""
+    if os.path.exists(DISMISS_CONFIG_PATH):
+        return True
+    return save_dismiss_config(default_dismiss_config())
 
 
 def parse_time(text: str):

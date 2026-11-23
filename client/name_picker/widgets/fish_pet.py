@@ -2,7 +2,6 @@
 """大肥鱼桌宠：点击抽名、自由散步、摸头喂食、气泡提醒、右键菜单。"""
 import os
 import math
-import json
 import time
 import base64
 import random
@@ -19,6 +18,7 @@ from PyQt5.QtWidgets import (
 from ..config import (
     PET_SIZE_RATIO, PET_SIZE_MIN, PET_SIZE_MAX, ui_path,
 )
+from ..pet_config import load_pet_config
 from ..autostart import set_autostart, is_autostart_enabled
 from .speech_bubble import SpeechBubble
 from .pet_result import PetResultDialog
@@ -157,7 +157,7 @@ class FishPet(QWidget):
         self._is_walking = False   # 行走会话（受时间表控制）
         self._is_moving = False    # 当前是否在迈步（False = 原地休息）
         self._facing = -1          # 面朝方向：-1 左，1 右
-        self._walk_speed = 2       # 每 50ms 的像素（来自 pet_walk.json）
+        self._walk_speed = 2       # 每 50ms 的像素（来自 pet_config.json 的 walk.walk_speed）
         self._walk_boost_until = 0.0
         self._walk_override_until = 0.0
         self._target: QPointF = None
@@ -221,17 +221,20 @@ class FishPet(QWidget):
 
     # ---------- 行走：时间表与模式 ----------
     def _load_walk_config(self):
-        """读取 pet_walk.json，返回时间范围列表；文件缺失/损坏时返回 None。"""
-        config_path = ui_path("pet_walk.json")
-        if not os.path.exists(config_path):
-            return None
+        """读取 pet_config.json 的 walk 段，返回时间范围列表。
+
+        配置缺失时会由 pet_config 自动生成默认文件，因此正常情况下一定有值。
+        """
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            self._walk_speed = max(1, int(data.get("walk_speed", 2)))
-            return data.get("walk_time_ranges", [])
+            walk = load_pet_config().get("walk") or {}
         except Exception:
             return None
+        try:
+            self._walk_speed = max(1, int(walk.get("walk_speed", 2)))
+        except (TypeError, ValueError):
+            self._walk_speed = 2
+        ranges = walk.get("walk_time_ranges")
+        return ranges if isinstance(ranges, list) else None
 
     def _walk_allowed(self, time_ranges) -> bool:
         if not self._interaction_enabled or not self.isVisible():
@@ -251,7 +254,10 @@ class FishPet(QWidget):
             try:
                 start = dt.strptime(tr["start"], "%H:%M").time()
                 end = dt.strptime(tr["end"], "%H:%M").time()
-                if start <= now_time <= end:
+                if start <= end:
+                    if start <= now_time <= end:
+                        return True
+                elif now_time >= start or now_time <= end:  # 跨零点的时间段
                     return True
             except Exception:
                 continue
@@ -758,14 +764,8 @@ class FishPet(QWidget):
     def _check_reminders(self):
         if not self._interaction_enabled:
             return
-        config_path = ui_path("pet_reminders.json")
-        if not os.path.exists(config_path):
-            return
-
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            reminders = data.get("reminders", [])
+            reminders = load_pet_config().get("reminders") or []
         except Exception:
             return
 
