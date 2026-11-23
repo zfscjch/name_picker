@@ -7,33 +7,40 @@
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>380</height>
+    <height>470</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>随机点名器</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">font-family: &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, &quot;Hiragino Sans GB&quot;, &quot;Noto Sans SC&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif;
+QMainWindow { background-color: #ffffff; }</string>
+  </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="styleSheet">
+    <string notr="true">background-color: #ffffff;</string>
+   </property>
    <layout class="QVBoxLayout" name="mainLayout" stretch="0,0,0,1,0">
     <property name="spacing">
-     <number>6</number>
+     <number>10</number>
     </property>
     <property name="leftMargin">
-     <number>10</number>
+     <number>16</number>
     </property>
     <property name="topMargin">
-     <number>10</number>
+     <number>14</number>
     </property>
     <property name="rightMargin">
-     <number>10</number>
+     <number>16</number>
     </property>
     <property name="bottomMargin">
-     <number>10</number>
+     <number>14</number>
     </property>
     <item>
      <widget class="QLabel" name="titleLabel">
       <property name="styleSheet">
-       <string notr="true">font-size: 28px; font-weight: bold; font-family: &quot;微软雅黑&quot;; </string>
+       <string notr="true">font-size: 26px; font-weight: bold; color: #16324f; padding: 2px 2px 6px 2px;</string>
       </property>
       <property name="text">
        <string>随机抽取</string>
@@ -43,7 +50,8 @@
     <item>
      <widget class="QGroupBox" name="setBox">
       <property name="styleSheet">
-       <string notr="true">QGroupBox { font-size: 16px; margin-top: 6px; } QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 4px; font-size: 18px; font-weight: bold; } QComboBox, QSpinBox { font-size: 16px; padding: 4px; }</string>
+       <string notr="true">QGroupBox { background-color: #ffffff; border: 1px solid #e3eaf3; border-radius: 16px; margin-top: 6px; padding: 8px 6px 6px 6px; font-size: 15px; color: #5d6b7a; }
+QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 16px; padding: 0 8px; background-color: #ffffff; font-size: 16px; font-weight: bold; color: #16324f; }</string>
       </property>
       <property name="title">
        <string>抽取设置</string>
@@ -69,7 +77,7 @@
          <item>
           <widget class="QLabel" name="modeLabel">
            <property name="styleSheet">
-            <string notr="true">font-size: 18px;</string>
+            <string notr="true">font-size: 15px; color: #5d6b7a; padding-right: 2px;</string>
            </property>
            <property name="text">
             <string>模式:</string>
@@ -78,6 +86,14 @@
          </item>
          <item>
           <widget class="QComboBox" name="mode_combo">
+           <property name="styleSheet">
+            <string notr="true">QComboBox { font-size: 14px; color: #1c2430; background-color: #ffffff; border: 1px solid #d7e1ee; border-radius: 8px; padding: 0 12px; }
+QComboBox:hover { border-color: #c9dcf5; background-color: #fbfdff; }
+QComboBox:focus { border-color: #4a90e2; background-color: #fbfdff; }
+QComboBox::drop-down { border: none; width: 24px; }
+QComboBox QAbstractItemView { background-color: #ffffff; border: 1px solid #e3eaf3; padding: 4px; outline: 0; color: #1c2430; selection-background-color: #eef5ff; selection-color: #1a73e8; }
+QComboBox QAbstractItemView::item { padding: 5px 8px; border-radius: 4px; }</string>
+           </property>
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -89,7 +105,7 @@
          <item>
           <widget class="QLabel" name="countLabel">
            <property name="styleSheet">
-            <string notr="true">font-size: 18px;</string>
+            <string notr="true">font-size: 15px; color: #5d6b7a; padding-right: 2px;</string>
            </property>
            <property name="text">
             <string>人数:</string>
@@ -98,6 +114,12 @@
          </item>
          <item>
           <widget class="QSpinBox" name="count_spin">
+           <property name="styleSheet">
+            <string notr="true">QSpinBox { font-size: 14px; color: #1c2430; background-color: #ffffff; border: 1px solid #d7e1ee; border-radius: 8px; padding: 0 4px 0 10px; }
+QSpinBox:hover { border-color: #c9dcf5; }
+QSpinBox:focus { border-color: #4a90e2; background-color: #fbfdff; }
+QSpinBox::up-button, QSpinBox::down-button { width: 0; border: none; background-color: transparent; }</string>
+           </property>
            <property name="minimumSize">
             <size>
              <width>70</width>
@@ -144,7 +166,7 @@
           <item>
            <widget class="QLabel" name="singleLabel">
             <property name="styleSheet">
-             <string notr="true">font-size: 18px;</string>
+             <string notr="true">font-size: 15px; color: #5d6b7a; padding-right: 2px;</string>
             </property>
             <property name="text">
              <string>分组:</string>
@@ -153,6 +175,14 @@
           </item>
           <item>
            <widget class="QComboBox" name="single_combo">
+            <property name="styleSheet">
+             <string notr="true">QComboBox { font-size: 14px; color: #1c2430; background-color: #ffffff; border: 1px solid #d7e1ee; border-radius: 8px; padding: 0 12px; }
+QComboBox:hover { border-color: #c9dcf5; background-color: #fbfdff; }
+QComboBox:focus { border-color: #4a90e2; background-color: #fbfdff; }
+QComboBox::drop-down { border: none; width: 24px; }
+QComboBox QAbstractItemView { background-color: #ffffff; border: 1px solid #e3eaf3; padding: 4px; outline: 0; color: #1c2430; selection-background-color: #eef5ff; selection-color: #1a73e8; }
+QComboBox QAbstractItemView::item { padding: 5px 8px; border-radius: 4px; }</string>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -184,14 +214,28 @@
           </property>
           <item>
            <widget class="QListWidget" name="multi_list">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>96</height>
+             </size>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>80</height>
+              <height>96</height>
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true">font-size: 16px;</string>
+             <string notr="true">QListWidget { font-size: 14px; color: #33404f; background-color: #ffffff; border: 1px solid #d7e1ee; border-radius: 10px; padding: 4px; }
+QListWidget::item { padding: 3px 6px; border-radius: 6px; }
+QListWidget::item:hover { background-color: #f5f8fd; }
+QListWidget::item:selected { background-color: #eef5ff; color: #1a73e8; }
+QScrollBar:vertical { background: transparent; width: 10px; margin: 4px 2px; }
+QScrollBar::handle:vertical { background-color: #d7e1ee; border-radius: 4px; min-height: 20px; }
+QScrollBar::handle:vertical:hover { background-color: #c9dcf5; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; background: transparent; border: none; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }</string>
             </property>
            </widget>
           </item>
@@ -204,7 +248,10 @@
     <item>
      <widget class="QPushButton" name="draw_btn">
       <property name="styleSheet">
-       <string notr="true">font-size: 32px; padding: 8px; font-weight: bold;</string>
+       <string notr="true">QPushButton { font-size: 25px; font-weight: bold; color: #ffffff; padding: 14px 16px; border: none; border-radius: 12px; background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #5aa0ef, stop:1 #1a73e8); }
+QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6fb1f5, stop:1 #1f7cef); }
+QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #4a90e2, stop:1 #1667d4); }
+QPushButton:disabled { background-color: #b9d3f2; color: #ffffff; }</string>
       </property>
       <property name="text">
        <string>开始抽取</string>
@@ -219,11 +266,16 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>60</height>
+        <height>118</height>
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">font-size: 48px; font-weight: bold; color: #1a73e8; background-color: #f8f9fa; border: 1px solid #ccc; border-radius: 5px;</string>
+       <string notr="true">QTextEdit { font-size: 48px; font-weight: bold; color: #1a73e8; background-color: #f8f9fa; border: 1px solid #e6ebf2; border-radius: 12px; padding: 6px 16px; }
+QScrollBar:vertical { background: transparent; width: 10px; margin: 6px 2px; }
+QScrollBar::handle:vertical { background-color: #d7e1ee; border-radius: 4px; min-height: 24px; }
+QScrollBar::handle:vertical:hover { background-color: #c9dcf5; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; background: transparent; border: none; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }</string>
       </property>
       <property name="readOnly">
        <bool>true</bool>
@@ -238,7 +290,9 @@
       <item>
        <widget class="QPushButton" name="clear_result_btn">
         <property name="styleSheet">
-         <string notr="true">padding: 4px 8px; font-size: 18px;</string>
+         <string notr="true">QPushButton { padding: 6px 14px; font-size: 14px; color: #445162; background-color: #ffffff; border: 1px solid #d7e1ee; border-radius: 8px; }
+QPushButton:hover { background-color: #fbfdff; border-color: #c9dcf5; }
+QPushButton:pressed { background-color: #eef5ff; color: #1a73e8; }</string>
         </property>
         <property name="text">
          <string>清空结果</string>
@@ -248,7 +302,7 @@
       <item>
        <widget class="QLabel" name="status_label">
         <property name="styleSheet">
-         <string notr="true">color: #666; font-size: 14px;</string>
+         <string notr="true">color: #8b98a8; font-size: 13px; padding-left: 2px;</string>
         </property>
         <property name="text">
          <string>尚未导入名单</string>
@@ -258,7 +312,9 @@
       <item>
        <widget class="QPushButton" name="admin_btn">
         <property name="styleSheet">
-         <string notr="true">padding: 4px 8px; font-size: 18px;</string>
+         <string notr="true">QPushButton { padding: 6px 14px; font-size: 14px; color: #445162; background-color: #ffffff; border: 1px solid #d7e1ee; border-radius: 8px; }
+QPushButton:hover { background-color: #fbfdff; border-color: #c9dcf5; }
+QPushButton:pressed { background-color: #eef5ff; color: #1a73e8; }</string>
         </property>
         <property name="text">
          <string>名单管理</string>
@@ -269,40 +325,50 @@
     </item>
    </layout>
   </widget>
-    <widget class="QMenuBar" name="menubar">
-      <property name="geometry">
-        <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>600</width>
-        <height>22</height>
-        </rect>
-      </property>
-      <widget class="QMenu" name="menuSettings">
-        <property name="title">
-        <string>设置(&amp;S)</string>
-        </property>
-        <addaction name="actionDismissSettings"/>
-      </widget>
-      <widget class="QMenu" name="menuHelp">
-        <property name="title">
-        <string>帮助(&amp;H)</string>
-        </property>
-        <addaction name="actionAbout"/>
-      </widget>
-      <addaction name="menuSettings"/>
-      <addaction name="menuHelp"/>
-      </widget>
-      <action name="actionDismissSettings">
-      <property name="text">
-        <string>防拖堂设置…</string>
-      </property>
-      </action>
-      <action name="actionAbout">
-      <property name="text">
-        <string>版本信息…</string>
-      </property>
-      </action>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>600</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QMenuBar { background-color: #f7f9fc; border-bottom: 1px solid #e3eaf3; padding: 2px 8px; font-size: 13px; color: #5d6b7a; }
+QMenuBar::item { background: transparent; padding: 4px 10px; border-radius: 6px; }
+QMenuBar::item:selected { background-color: #eef5ff; color: #1a73e8; }
+QMenuBar::item:pressed { background-color: #eef5ff; color: #1a73e8; }
+QMenu { background-color: #ffffff; border: 1px solid #e3eaf3; padding: 4px; }
+QMenu::item { padding: 6px 22px 6px 16px; border-radius: 6px; color: #33404f; }
+QMenu::item:selected { background-color: #eef5ff; color: #1a73e8; }
+QMenu::separator { height: 1px; background-color: #e3eaf3; margin: 4px 10px; }</string>
+   </property>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>设置(&amp;S)</string>
+    </property>
+    <addaction name="actionDismissSettings"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>帮助(&amp;H)</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuSettings"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <action name="actionDismissSettings">
+   <property name="text">
+    <string>防拖堂设置…</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>版本信息…</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

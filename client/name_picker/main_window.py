@@ -2,6 +2,7 @@
 """主界面（抽取）。"""
 import os
 import random
+import re
 from typing import List
 
 from PyQt5 import uic
@@ -28,6 +29,9 @@ class NamePickerUI(QMainWindow, MainUIForm):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        # .ui 中显示区的完整样式（边框、圆角、滚动条等）；动画时只替换字号
+        self._display_base_qss = self.display.styleSheet()
 
         self.records: List[dict] = []
         self.data_path = os.path.join(BASE_DIR, "name_picker_data.json")
@@ -191,6 +195,9 @@ class NamePickerUI(QMainWindow, MainUIForm):
         mode = self.mode_combo.currentData()
         self.single_row.setVisible(mode == "single")
         self.multi_widget.setVisible(mode == "multi")
+        if mode == "multi":
+            # 列表首次显示时 Qt 才创建滚动条，重新应用一次样式表让滚动条也走 QSS
+            self.multi_list.setStyleSheet(self.multi_list.styleSheet())
 
     def _on_update_available(self, version, url, changelog):
         msg = f"发现新版本: v{version}\n\n更新说明:\n{changelog}\n\n是否立即下载并安装更新？"
@@ -467,9 +474,11 @@ class NamePickerUI(QMainWindow, MainUIForm):
 
     def _apply_display_style(self, k: int):
         size = 72 if k == 1 else (48 if k <= 3 else (36 if k <= 8 else 28))
-        self.display.setStyleSheet(
-            f"font-size: {size}px; font-weight: bold; color: #1a73e8; background-color: #f8f9fa;"
+        qss = re.sub(
+            r"font-size:\s*\d+px;", f"font-size: {size}px;",
+            self._display_base_qss, count=1,
         )
+        self.display.setStyleSheet(qss)
 
     def _set_display_text(self, text: str):
         self.display.setText(text)

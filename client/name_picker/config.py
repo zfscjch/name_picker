@@ -31,7 +31,7 @@ def ui_path(filename: str) -> str:
 
 
 CONFIG = {
-    "version": "1.1.6",
+    "version": "1.1.7",
     "update_api_url": "https://www.cjchcoderchat.site:8080/api/update" if not os.path.exists(os.path.join(BASE_DIR, "plugins", "schedule_booster.py")) \
         else "https://www.cjchcoderchat.site:8080/api/update?pre-release=1",
 }
