@@ -15,10 +15,13 @@ from datetime import datetime, time as dtime
 
 from PyQt5.QtCore import QObject, QTimer, Qt
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QShortcut
+from PyQt5.QtWidgets import (
+    QApplication, QLabel, QShortcut, QVBoxLayout, QWidget,
+)
 
 from .hotkey import HotkeyListener, DEFAULT_HOTKEY
 from .config import ui_path
+from .widgets.pet_actions import ActionFish
 
 DISMISS_CONFIG_PATH = ui_path("dismiss_config.json")
 
@@ -307,9 +310,25 @@ class SilenceWindow(QWidget):
         hint_label.setAlignment(Qt.AlignCenter)
         hint_label.setStyleSheet("color: #e0e6ef; font-size: 26px;")
 
+        bubble_label = QLabel("呼…安静休息一下吧～")
+        bubble_label.setAlignment(Qt.AlignCenter)
+        bubble_label.setStyleSheet("color: #9fd0ff; font-size: 22px;")
+
+        # 大肥鱼：播完“打哈欠 → 蜷起来睡觉”的动作后定格，陪大家安静休息
+        fish_size = 340
+        try:
+            screen_h = QApplication.primaryScreen().availableGeometry().height()
+            fish_size = max(220, min(340, int(screen_h * 0.42)))
+        except Exception:
+            pass
+        self._fish = ActionFish("sleep", size=fish_size, parent=self)
+
         layout.addStretch(1)
         layout.addWidget(title_label)
         layout.addWidget(hint_label)
+        layout.addSpacing(18)
+        layout.addWidget(bubble_label)
+        layout.addWidget(self._fish, 0, Qt.AlignHCenter)
         layout.addStretch(1)
 
         sc1 = QShortcut(QKeySequence("Esc"), self)
@@ -327,6 +346,10 @@ class SilenceWindow(QWidget):
         super().keyPressEvent(event)
 
     def closeEvent(self, event):
+        try:
+            self._fish.stop()
+        except Exception:
+            pass
         if self._closed:
             return
         self._closed = True

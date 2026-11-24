@@ -22,6 +22,9 @@ from ..pet_config import load_pet_config
 from ..autostart import set_autostart, is_autostart_enabled
 from .speech_bubble import SpeechBubble
 from .pet_result import PetResultDialog
+from .pet_actions import (
+    ActionPlayer, CELL_H, CELL_W, load_action_frames,
+)
 
 # 行走动画的兜底节奏（pet_walk.svg 缺失时使用，与旧版 3×50ms 一帧一致）
 WALK_FRAME_MS = 150
@@ -51,6 +54,18 @@ PET_LINES = ["嘿嘿，好舒服～", "再摸一下嘛", "咕噜咕噜…", "最
 FEED_LINES = ["小鱼干！最喜欢了～", "吃饱啦，有力气走路了！", "嗷呜——谢谢投喂！"]
 TEASE_LINES = ["哇！跳这么高！", "看我表演一个鲤鱼跳龙门！"]
 DROP_LINES = ["放我下来啦～", "晕乎乎的…", "下次轻一点嘛"]
+WAKE_LINES = ["唔…我醒啦", "呼啊——睡得好香", "诶？要抽人了吗？"]
+STUDY_LINES = ["一起学习吧～", "翻开小本本，认真模式启动！"]
+DRUM_LINES = ["咚咚咚！给你来一段～", "听我敲一段小鼓！"]
+
+# 闲置多久后开始打瞌睡（秒）：安静模式更快犯困，活泼模式慢一点
+SLEEP_AFTER_SECONDS = 150
+CALM_SLEEP_AFTER_SECONDS = 90
+
+# 安静模式：走得更慢、待机动作更慢、随机说话与打招呼更少
+CALM_SPEED_FACTOR = 0.65
+CALM_IDLE_FRAME_SECONDS = 2.4
+ACTIVE_IDLE_FRAME_SECONDS = 0.6
 
 _SVG_NS = "http://www.w3.org/2000/svg"
 _XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
@@ -146,6 +161,17 @@ class FishPet(QWidget):
         self._walk_frame_ms = float(walk["frame_ms"])
         self._bob_px = float(walk["bob_px"])
         self._bob_count = float(walk["bob_count"])
+        if self._walk_frame_size[0] <= 0 or self._walk_frame_size[1] <= 0:
+            # 行走素材缺失时也要保证动作帧有地方画
+            self._walk_frame_size = (CELL_W, CELL_H)
+
+        # 2.5 动作帧（All.webp 拆包）：待机 / 招手 / 睡觉 / 学习 / 敲鼓 / 举鱼
+        self._action_frames = load_action_frames()
+        self._actions = ActionPlayer(self)
+        self._actions.frame_changed.connect(self.update)
+        self._actions.finished.connect(self._on_action_finished)
+        self._sleeping = False
+        self._last_interaction = time.monotonic()
 
         # 3. 行走状态：位置用浮点累积，避免 16ms 定时器下四舍五入抖动
         self._walk_frame_pos = 0.0
@@ -166,6 +192,7 @@ class FishPet(QWidget):
 
         # 4. 互动 / 特效状态
         self._interaction_enabled = True
+        self._calm = True          # 默认安静一点，避免平时太活跃
         self._chatter_enabled = True
         self._dragging = False
         self._press_pos: QPoint = None
@@ -205,6 +232,12 @@ class FishPet(QWidget):
         self._chatter_timer.timeout.connect(self._maybe_chatter)
         self._chatter_timer.start()
 
+        # 闲置太久会打瞌睡；任何互动都会把它叫醒
+        self._sleep_timer = QTimer(self)
+        self._sleep_timer.setInterval(30000)
+        self._sleep_timer.timeout.connect(self._maybe_sleep)
+        self._sleep_timer.start()
+
         self._schedule_timer = QTimer(self)
         self._schedule_timer.setInterval(60000)
         self._schedule_timer.timeout.connect(self._check_walk_schedule)
@@ -241,6 +274,9 @@ class FishPet(QWidget):
             return False
         if self._walk_mode == WALK_MODE_STILL:
             return False
+        # 用户主动开了学习模式，就让它安静学会儿，别按时间表拉去散步
+        if self._actions.name == "study":
+            return False
         # 跟着鼠标是用户明确打开的模式，不受走动时间表限制
         if self._walk_mode == WALK_MODE_FOLLOW:
             return True
@@ -272,6 +308,8 @@ class FishPet(QWidget):
             self._stop_walking()
 
     def _start_walking(self):
+        self._wake_up(say=False)
+        self._actions.stop()
         self._is_walking = True
         self._is_moving = self._walk_mode == WALK_MODE_FOLLOW
         self._facing = -1
@@ -280,7 +318,10 @@ class FishPet(QWidget):
         self._walk_y = float(self.y())
         self._target = None
         self._follow_resting = False
-        self._pause_until = time.monotonic() + random.uniform(0.2, 0.6)
+        if self._calm:
+            self._pause_until = time.monotonic() + random.uniform(0.8, 1.8)
+        else:
+            self._pause_until = time.monotonic() + random.uniform(0.2, 0.6)
         self._walk_clock.start()
         self._walk_last_ms = 0
         self._walk_timer.start()
@@ -295,6 +336,8 @@ class FishPet(QWidget):
 
     def _current_speed(self) -> float:
         speed = float(self._walk_speed)
+        if self._calm:
+            speed *= CALM_SPEED_FACTOR
         if time.monotonic() < self._walk_boost_until:
             speed *= 1.6
         return speed
@@ -323,8 +366,10 @@ class FishPet(QWidget):
 
     def _advance_frame(self, dt):
         if self._walk_frame_count > 0 and self._walk_frame_ms > 0:
+            # 安静模式下步伐放慢，避免“慢速平移 + 正常步频”的滑步感
+            rate = CALM_SPEED_FACTOR if self._calm else 1.0
             self._walk_frame_pos = (
-                self._walk_frame_pos + dt / self._walk_frame_ms
+                self._walk_frame_pos + dt / self._walk_frame_ms * rate
             ) % self._walk_frame_count
 
     def _step_towards_target(self, dt) -> bool:
@@ -358,8 +403,15 @@ class FishPet(QWidget):
             if arrived:
                 self._is_moving = False
                 self._walk_frame_pos = 0.0
-                self._pause_until = now + random.uniform(0.8, 2.4)
+                if self._calm:
+                    self._pause_until = now + random.uniform(1.8, 4.5)
+                else:
+                    self._pause_until = now + random.uniform(0.8, 2.4)
         elif now >= self._pause_until:
+            # 安静模式下有时干脆多站一会儿，不急着赶路
+            if self._calm and random.random() < 0.3:
+                self._pause_until = now + random.uniform(3.0, 6.0)
+                return
             self._target = self._pick_roam_target()
             self._is_moving = True
             self._walk_frame_pos = 0.0
@@ -418,6 +470,10 @@ class FishPet(QWidget):
             # 抽名结果对话框打开时先站住，别在屏幕上来回走
             self._is_moving = False
             return
+        if self._action_blocking():
+            # 睡觉 / 学习 / 敲鼓 / 举鱼时先不走路
+            self._is_moving = False
+            return
 
         # 用真实时间推进，定时器抖动不会让脚步忽快忽慢
         dt = max(0.0, min(float(dt), 100.0))
@@ -437,19 +493,86 @@ class FishPet(QWidget):
         self.show_bubble(text, duration)
 
     def _maybe_chatter(self):
-        if not self._chatter_enabled or not self._interaction_enabled:
+        if self._sleeping or not self._chatter_enabled or not self._interaction_enabled:
             return
         if not self.isVisible() or self._dragging or self._result_dialog is not None:
             return
         if self._bubble is not None and self._bubble.isVisible():
             return
-        if random.random() > 0.16:
+        if self._calm:
+            # 安静模式：不在走路时说话，而且要闲置一阵才偶尔冒一句
+            if self._is_walking or self._is_moving:
+                return
+            if time.monotonic() - self._last_interaction < 30:
+                return
+            if random.random() > 0.03:
+                return
+        elif random.random() > 0.16:
             return
         self._say(random.choice(CHATTER_LINES), 4.0)
+
+    # ---------- 动作：招手 / 睡觉 / 学习 / 敲鼓 / 举鱼 ----------
+    def _touch(self):
+        """记录最近一次互动时间，用于判断要不要打瞌睡。"""
+        self._last_interaction = time.monotonic()
+
+    def _action_blocking(self) -> bool:
+        """这些动作播放时先别走路，否则会一边学习一边平移。"""
+        return self._actions.name in ("sleep", "study", "drum", "fish")
+
+    def _on_action_finished(self):
+        self._pause_until = time.monotonic() + 0.4
+        self.update()
+
+    def _maybe_sleep(self):
+        if self._sleeping or not self._interaction_enabled or not self.isVisible():
+            return
+        if self._dragging or self._result_dialog is not None or self._is_walking:
+            return
+        if self._actions.name:
+            return
+        threshold = CALM_SLEEP_AFTER_SECONDS if self._calm else SLEEP_AFTER_SECONDS
+        if time.monotonic() - self._last_interaction < threshold:
+            return
+        if self._actions.play("sleep", loop=False, hold_last=True):
+            self._sleeping = True
+            self._say("呼…" if self._calm else "呼…好困…", 2.0 if self._calm else 2.5)
+
+    def _wake_up(self, say=True):
+        if not self._sleeping:
+            return
+        self._sleeping = False
+        self._actions.stop()
+        self._touch()
+        if say:
+            self._say(random.choice(WAKE_LINES), 2.5)
+
+    def _play_drum(self):
+        if not self._interaction_enabled:
+            return
+        self._wake_up(say=False)
+        self._touch()
+        if self._actions.play("drum", loop=True, duration_ms=3500):
+            self._say(random.choice(DRUM_LINES), 2.6)
+
+    def _toggle_study(self):
+        if not self._interaction_enabled:
+            return
+        self._touch()
+        if self._actions.name == "study":
+            self._actions.stop()
+            self._say("学习结束，休息一下～", 2.5)
+            self._check_walk_schedule()
+            return
+        self._wake_up(say=False)
+        if self._actions.play("study", loop=True):
+            self._say(random.choice(STUDY_LINES), 3.0)
 
     def _pet_head(self):
         if not self._interaction_enabled:
             return
+        self._wake_up(say=False)
+        self._touch()
         self._say(random.choice(PET_LINES), 3.0)
         self._spawn_hearts(5)
         self.jump(14)
@@ -457,20 +580,34 @@ class FishPet(QWidget):
     def _feed_pet(self):
         if not self._interaction_enabled:
             return
+        self._wake_up(say=False)
+        self._touch()
         self._say(random.choice(FEED_LINES), 3.5)
         self._spawn_hearts(8)
         self._walk_boost_until = time.monotonic() + 45.0
+        self._actions.play("fish", loop=True, duration_ms=3200)
         self.jump(10)
 
     def _tease_pet(self):
         if not self._interaction_enabled:
             return
+        self._wake_up(say=False)
+        self._touch()
         self._say(random.choice(TEASE_LINES), 3.0)
         self._spawn_hearts(3)
         self.jump(22)
 
     def _set_chatter(self, enabled):
         self._chatter_enabled = bool(enabled)
+
+    def _set_calm(self, enabled):
+        self._calm = bool(enabled)
+        self._touch()
+        if self._calm:
+            self._say("嗯，我安静一点～", 2.5)
+        else:
+            self._say("好耶，活泼起来！", 2.5)
+        self.update()
 
     def _begin_leg(self):
         """立刻迈出下一步：漫步先抽一个目标点，跟随则直接追鼠标。"""
@@ -480,6 +617,10 @@ class FishPet(QWidget):
             self._target = self._pick_roam_target()
 
     def _set_walk_mode(self, mode):
+        self._wake_up(say=False)
+        self._touch()
+        if mode != WALK_MODE_STILL and self._actions.name == "study":
+            self._actions.stop()
         self._walk_mode = mode
         self._follow_resting = False
         self._target = None
@@ -495,6 +636,10 @@ class FishPet(QWidget):
             self._begin_leg()
 
     def _walk_now(self):
+        self._wake_up(say=False)
+        self._touch()
+        if self._actions.name == "study":
+            self._actions.stop()
         if self._walk_mode == WALK_MODE_STILL:
             self._walk_mode = WALK_MODE_ROAM
         self._walk_override_until = time.monotonic() + 60.0
@@ -504,6 +649,7 @@ class FishPet(QWidget):
         self._say("走两步～", 2.5)
 
     def _finish_drag(self):
+        self._touch()
         screen = QApplication.primaryScreen().availableGeometry()
         self._walk_x = float(self.x())
         self._walk_y = float(self.y())
@@ -644,10 +790,20 @@ class FishPet(QWidget):
         if inside:
             if self._hover_started is None:
                 self._hover_started = now
-            elif now - self._hover_started >= 1.2 and now >= self._hover_cooldown_until:
+            elif self._sleeping and now - self._hover_started >= (1.2 if self._calm else 0.6):
+                # 睡着了被盯着看一会儿就会醒
                 self._hover_started = None
                 self._hover_cooldown_until = now + 45.0
-                self._say(random.choice(HOVER_LINES), 3.0)
+                self._wake_up(say=True)
+            elif now - self._hover_started >= (1.8 if self._calm else 1.2) and now >= self._hover_cooldown_until:
+                self._hover_started = None
+                self._hover_cooldown_until = now + (180.0 if self._calm else 45.0)
+                if not self._calm and not self._is_walking and not self._actions.name:
+                    self._actions.play("wave", loop=False)
+                    self._touch()
+                    self._say(random.choice(HOVER_LINES), 3.0)
+                else:
+                    self._say(random.choice(HOVER_LINES), 3.0)
         else:
             self._hover_started = None
 
@@ -714,14 +870,28 @@ class FishPet(QWidget):
             return
         self._paint_walk_frame(painter, int(self._walk_frame_pos), offset)
 
-    def _rest_frame_index(self) -> int:
-        """走路中途休息时定格的那一帧（第 2 帧最接近站立姿势）。"""
-        count = self._walk_frame_count
-        if count <= 0:
-            return 0
-        return min(count - 1, int(count * 1.5 / 8.0))
+    def _draw_action_frame(self, painter, frame, offset):
+        """画 All.webp 拆出来的动作帧（招手/睡觉/学习/敲鼓/举鱼）。"""
+        if frame is None or frame.isNull():
+            return
+        target = self._walk_target_rect(offset)
+        painter.save()
+        if self._facing > 0:
+            painter.translate(self.width(), 0)
+            painter.scale(-1, 1)
+        painter.drawPixmap(target, frame, frame.rect())
+        painter.restore()
 
     def _paint_idle(self, painter, offset):
+        # 有动作帧时用 All.webp 里的站立待机（会眨眼、轻微晃动）
+        frames = self._action_frames.get("idle") if self._action_frames else None
+        if frames:
+            interval = CALM_IDLE_FRAME_SECONDS if self._calm else ACTIVE_IDLE_FRAME_SECONDS
+            index = int(time.monotonic() / interval) % len(frames)
+            self._draw_action_frame(painter, frames[index], offset)
+            return
+
+        # 动作表缺失时退回 pet.png
         if self.pixmap.isNull():
             painter.drawText(self.rect(), Qt.AlignCenter, "图片缺失")
             return
@@ -745,16 +915,22 @@ class FishPet(QWidget):
         painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
 
         offset = self._jump_offset()
-        if self._is_walking and self._walk_frame_count:
+        action_frame = self._actions.current()
+        if self._actions.name and action_frame is not None:
+            # 睡觉 / 学习 / 敲鼓 / 举鱼 / 招手：优先显示动作帧
+            if self._actions.name == "sleep":
+                offset += int(math.sin(self._phase) * (1 if self._calm else 2))  # 睡着后轻轻呼吸
+            self._draw_action_frame(painter, action_frame, offset)
+        elif self._is_walking and self._walk_frame_count:
             if self._is_moving:
                 offset += self._walk_bob()
                 self._paint_walking(painter, offset)
             else:
-                # 走路中途的小憩：定格站姿，避免和躺着的 pet.png 来回跳变
-                offset += int(math.sin(self._phase) * 2)
-                self._paint_walk_frame(painter, self._rest_frame_index(), offset)
+                # 走路中途的小憩：用待机动作，避免和躺着的 pet.png 来回跳变
+                offset += int(math.sin(self._phase) * (1 if self._calm else 2))
+                self._paint_idle(painter, offset)
         else:
-            offset += int(math.sin(self._phase) * 4)
+            offset += int(math.sin(self._phase) * (1 if self._calm else 4))
             self._paint_idle(painter, offset)
         self._paint_hearts(painter)
 
@@ -817,6 +993,8 @@ class FishPet(QWidget):
     # ---------- 鼠标 / 菜单 ----------
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            self._wake_up(say=False)
+            self._touch()
             self._press_pos = event.globalPos()
             self._drag_offset = self.pos()
             self._dragging = False
@@ -848,6 +1026,8 @@ class FishPet(QWidget):
             self._on_click()
 
     def contextMenuEvent(self, event):
+        self._wake_up(say=False)
+        self._touch()
         menu = self._build_context_menu()
         menu.exec_(event.globalPos())
         menu.deleteLater()
@@ -867,11 +1047,20 @@ class FishPet(QWidget):
             ("💗  摸摸头", self._pet_head),
             ("🐟  喂小鱼干", self._feed_pet),
             ("🤸  跳一下", self._tease_pet),
+            ("🥁  敲一段", self._play_drum),
         ):
             act = QAction(text, menu)
             act.setEnabled(enabled)
             act.triggered.connect(handler)
             menu.addAction(act)
+
+        study_active = self._actions.name == "study"
+        act_study = QAction(
+            "📚  结束学习" if study_active else "📚  陪我学习", menu
+        )
+        act_study.setEnabled(enabled)
+        act_study.triggered.connect(self._toggle_study)
+        menu.addAction(act_study)
 
         menu.addSeparator()
 
@@ -903,6 +1092,13 @@ class FishPet(QWidget):
         act_talk.setEnabled(enabled)
         act_talk.toggled.connect(self._set_chatter)
         menu.addAction(act_talk)
+
+        act_calm = QAction("🌙  安静模式", menu)
+        act_calm.setCheckable(True)
+        act_calm.setChecked(self._calm)
+        act_calm.setEnabled(enabled)
+        act_calm.toggled.connect(self._set_calm)
+        menu.addAction(act_calm)
 
         menu.addSeparator()
 
@@ -939,6 +1135,9 @@ class FishPet(QWidget):
         self._do_draw()
 
     def _do_draw(self):
+        self._wake_up(say=False)
+        self._touch()
+        self._actions.stop()
         try:
             names, plugin_name = self.owner.quick_pick(1)
         except Exception as e:
@@ -960,6 +1159,8 @@ class FishPet(QWidget):
         self._pause_until = time.monotonic() + 0.4
 
     def hide_all_ui(self):
+        self._wake_up(say=False)
+        self._actions.stop()
         self._stop_walking()
         if self._bubble:
             self._bubble.close()
@@ -989,9 +1190,12 @@ class FishPet(QWidget):
             self._hearts = []
             self._jump_started = None
             self._fx_timer.stop()
+            self._wake_up(say=False)
+            self._actions.stop()
             self._stop_walking()
             self.update()
         else:
+            self._touch()
             self._check_walk_schedule()
 
     def _toggle_autostart(self, checked: bool):
@@ -1006,9 +1210,11 @@ class FishPet(QWidget):
         for timer in (
             self._anim, self._reminder_timer, self._walk_timer,
             self._schedule_timer, self._fx_timer, self._chatter_timer,
+            self._sleep_timer,
         ):
             if timer.isActive():
                 timer.stop()
+        self._actions.stop()
         if self._bubble:
             self._bubble.close()
         super().closeEvent(event)

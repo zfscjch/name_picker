@@ -10,7 +10,7 @@ Name Picker 是一款用 Python 编写的轻量级桌面工具，专为课堂互
 
 - **随机点名** — 一键从名单中随机抽取，公平公正。
 - **宠物动画** — 8 帧宠物行走动画（`pet_walk_*.png`），合成为带 60fps 交叉补间的 `pet_walk.svg`，走动更连贯。
-- **宠物互动** — 左键抽名、中键摸头；右键可喂小鱼干、逗一逗、切换「自由散步 / 跟着鼠标 / 原地待机」。宠物空闲时会看向鼠标、悬停会打招呼、偶尔自言自语，被拖拽放下后也会有反应。
+- **宠物互动** — 左键抽名、中键摸头；右键可喂小鱼干、敲小鼓、切换「自由散步 / 跟着鼠标 / 原地待机」。宠物空闲时会看向鼠标、悬停会招手打招呼、偶尔自言自语，闲着发呆还会打瞌睡，也能让它坐下来陪你学习；防拖堂全屏页里也有一条睡觉的大肥鱼。默认开启「🌙 安静模式」：走得更慢、待机动作更缓、更少说话，右键可切回活泼模式。
 - **插件系统** — 通过 `plugins.py` 支持功能扩展，可根据需要灵活定制。
 - **图形化设置** — 提供直观的设置对话框（`settings_dialog.py`），方便管理名单和偏好。
 - **配置开箱即用** — `pet_config.json` / `dismiss_config.json` 缺失时自动生成默认配置，首次运行无需手动准备。桌宠的行走时间表与气泡提醒合并保存在同一个 `pet_config.json` 中。
@@ -109,10 +109,12 @@ name_picker/
 │   ├── main_window.ui           # Qt Designer 界面文件（主窗口）
 │   ├── name_picker.py           # 客户端启动脚本
 │   ├── pet.png                  # 宠物静态图
+│   ├── pet_actions.png          # 互动动作帧（待机/招手/睡觉/学习/敲鼓/举鱼）
 │   ├── pet_config.json          # 桌宠配置：行走时间表 + 气泡提醒（缺失时自动生成）
 │   ├── pet_walk_*.png           # 宠物行走动画帧（8 帧原画，兜底用）
 │   └── pet_walk.svg             # 60fps 行走动画（utils/build_pet_walk_svg.py 生成）
 ├── utils/
+│   ├── build_pet_actions.py     # 从 pics/All.webp 生成 pet_actions.png
 │   └── build_pet_walk_svg.py    # 把 8 帧原画合成为 pet_walk.svg
 ├── .gitignore
 └── LICENSE
