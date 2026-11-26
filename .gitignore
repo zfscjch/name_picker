@@ -1,4 +1,4 @@
-client/dismiss_config.json
+﻿client/dismiss_config.json
 client/name_picker_data.json
 client/pet_config.json
 client/create_versionfile.py
@@ -16,3 +16,4 @@ client/name_picker/widgets/__pycache__/
 _outdated/
 client/pet_walk.webp
 server/
+light/name_picker-light.zip
